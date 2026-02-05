@@ -1,0 +1,10 @@
+{
+	"type": "module",
+	"scripts": {
+		"lint": "eslint",
+		"test": "node --test"
+	},
+	"devDependencies": {
+		"@inclusive-design/eslint-config": "^0.2.0"
+	}
+}
