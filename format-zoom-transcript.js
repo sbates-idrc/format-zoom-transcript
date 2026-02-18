@@ -1,8 +1,8 @@
-import {ZoomTranscriptFormatter} from './zoom-transcript-formatter.js';
+import { ZoomTranscriptFormatter } from './zoom-transcript-formatter.js';
 import * as process from 'node:process';
 import * as readline from 'node:readline';
-import {Readable, Writable} from 'node:stream';
-import {parseArgs} from 'node:util';
+import { Readable, Writable } from 'node:stream';
+import { parseArgs } from 'node:util';
 
 /**
  * Reads a Zoom transcript from 'input' and writes a formatted version
@@ -56,7 +56,7 @@ const options = {
 	},
 };
 
-const {values} = parseArgs({options});
+const { values } = parseArgs({ options });
 
 if (values.help) {
 	displayHelp();

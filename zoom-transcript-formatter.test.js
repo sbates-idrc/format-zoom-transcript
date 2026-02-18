@@ -1,6 +1,6 @@
-import {ZoomTranscriptFormatter} from './zoom-transcript-formatter.js';
+import { ZoomTranscriptFormatter } from './zoom-transcript-formatter.js';
 import assert from 'node:assert/strict';
-import {Writable} from 'node:stream';
+import { Writable } from 'node:stream';
 import test from 'node:test';
 
 class StringWritable extends Writable {
