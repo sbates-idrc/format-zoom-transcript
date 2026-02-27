@@ -1,4 +1,4 @@
-import { ZoomTranscriptFormatter } from './zoom-transcript-formatter.js';
+import { HTMLWriter, PlainTextWriter, ZoomTranscriptFormatter } from './zoom-transcript-formatter.js';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import test from 'node:test';
@@ -20,15 +20,16 @@ class StringWritable extends Writable {
 }
 
 /**
- * Creates a ZoomTranscriptFormatter instance and asserts that the
- * 'expectedLines' output lines are generated from the given 'inputLines'.
+ * Creates a ZoomTranscriptFormatter instance with a PlainTextWriter and
+ * asserts that the 'expectedLines' output lines are generated from the given
+ * 'inputLines'.
  * @param {Array} inputLines Lines to input to the formatter.
  * @param {Array} expectedLines Expected output lines from the formatter.
- * @param {object} formatterOptions Options for ZoomTranscriptFormatter.
  */
-function checkFormatter(inputLines, expectedLines, formatterOptions) {
+function checkFormatter(inputLines, expectedLines) {
 	const output = new StringWritable();
-	const formatter = new ZoomTranscriptFormatter(output, formatterOptions);
+	const writer = new PlainTextWriter(output, false);
+	const formatter = new ZoomTranscriptFormatter(writer);
 
 	for (const line of inputLines) {
 		formatter.line(line);
@@ -38,6 +39,84 @@ function checkFormatter(inputLines, expectedLines, formatterOptions) {
 
 	assert.strictEqual(output.getContents(), expectedLines.join('\n') + '\n');
 }
+
+test('PlainTextWriter blankLineBeforeTimestamp=false', () => {
+	const expectedLines = [
+		'[name one] 12:34:56',
+		'paragraph one',
+		'',
+		'paragraph two',
+		'[name two] 23:45:67',
+		'paragraph three',
+	];
+
+	const output = new StringWritable();
+	const writer = new PlainTextWriter(output, false);
+
+	writer.writeTimestamp('[name one] 12:34:56');
+	writer.writeParagraph('paragraph one');
+	writer.writeParagraph('paragraph two');
+	writer.writeTimestamp('[name two] 23:45:67');
+	writer.writeParagraph('paragraph three');
+	writer.end();
+
+	assert.strictEqual(output.getContents(), expectedLines.join('\n') + '\n');
+});
+
+test('PlainTextWriter blankLineBeforeTimestamp=true', () => {
+	const expectedLines = [
+		'[name one] 12:34:56',
+		'paragraph one',
+		'',
+		'paragraph two',
+		'',
+		'[name two] 23:45:67',
+		'paragraph three',
+	];
+
+	const output = new StringWritable();
+	const writer = new PlainTextWriter(output, true);
+
+	writer.writeTimestamp('[name one] 12:34:56');
+	writer.writeParagraph('paragraph one');
+	writer.writeParagraph('paragraph two');
+	writer.writeTimestamp('[name two] 23:45:67');
+	writer.writeParagraph('paragraph three');
+	writer.end();
+
+	assert.strictEqual(output.getContents(), expectedLines.join('\n') + '\n');
+});
+
+test('HTMLWriter', () => {
+	const expectedLines = [
+		'<!DOCTYPE html>',
+		'<html>',
+		'<head>',
+		'<title>Zoom Transcript</title>',
+		'</head>',
+		'<body>',
+		'<h1>Zoom Transcript</h1>',
+		'<h2>[name &amp; &lt; &gt; &quot; &#039;] 12:34:56</h2>',
+		'<p>paragraph &amp; &lt; &gt; &quot; &#039;</p>',
+		'<p>paragraph two</p>',
+		'<h2>[name two] 23:45:67</h2>',
+		'<p>paragraph three</p>',
+		'</body>',
+		'</html>',
+	];
+
+	const output = new StringWritable();
+	const writer = new HTMLWriter(output);
+
+	writer.writeTimestamp('[name & < > " \'] 12:34:56');
+	writer.writeParagraph('paragraph & < > " \'');
+	writer.writeParagraph('paragraph two');
+	writer.writeTimestamp('[name two] 23:45:67');
+	writer.writeParagraph('paragraph three');
+	writer.end();
+
+	assert.strictEqual(output.getContents(), expectedLines.join('\n') + '\n');
+});
 
 test('ZoomTranscriptFormatter concatenates text ending with punctuation for a single speaker into a single paragraph', () => {
 	const inputLines = [
@@ -67,7 +146,7 @@ test('ZoomTranscriptFormatter concatenates text ending with punctuation for a si
 		'text six.',
 	];
 
-	checkFormatter(inputLines, expectedLines, {});
+	checkFormatter(inputLines, expectedLines);
 });
 
 test('ZoomTranscriptFormatter starts a new paragraph when text does not end with punctuation', () => {
@@ -103,36 +182,5 @@ test('ZoomTranscriptFormatter starts a new paragraph when text does not end with
 		'text five',
 	];
 
-	checkFormatter(inputLines, expectedLines, {});
-});
-
-test('ZoomTranscriptFormatter writes a blank line before timestamps when the blankLineBeforeTimestamp option is set', () => {
-	const inputLines = [
-		'[name one] 12:34:56',
-		'text one.',
-		'',
-		'[name two] 23:45:67',
-		'text two.',
-		'',
-		'[name two] 34:56:78',
-		'text three.',
-		'',
-		'[name three] 45:67:89',
-		'text four.',
-	];
-
-	const expectedLines = [
-		'[name one] 12:34:56',
-		'text one.',
-		'',
-		'[name two] 23:45:67',
-		'text two. text three.',
-		'',
-		'[name three] 45:67:89',
-		'text four.',
-	];
-
-	checkFormatter(inputLines, expectedLines, {
-		blankLineBeforeTimestamp: true,
-	});
+	checkFormatter(inputLines, expectedLines);
 });
